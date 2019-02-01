@@ -1,14 +1,20 @@
 # Usage: printx ['text'] [options]
-# Summary: A better Write-Host that lets you print text in full RGB
+# Summary: A better Write-Host that lets you print text in full RGB colors.
 # Help: Print RGB text or plain text with printx.
 #
 # Options:
-#   -p, --plain                   Print plain, redirectable text.
-#   -c, --color   [color]         Print text in one of the 19 colors specified below.
-#   -r, --rgb     ['r,g,b']       Print text with an RGB color.
-#   -i, --invert                  Swap background and foreground colors.
+#   -c, -color   [color]         Print text in one of the 19 colors specified below.
+#   -r, -rgb     ['r,g,b']       Print text with an RGB color.
+#
+#   -i, -invert                  Swap background and foreground colors.
+#   -p, -plain                   Print plain, redirectable text.
+#   -u, -underline               Print underlined text.
+#   -b, -bold                    Print bold text (on supported consoles)
+#   -n, -newline                 Print a newline after the text
 # 
-#   -h, --help                    Print this help message.
+#   -h, -help                    Print this help message.
+#
+# Note: if you do not want any color, the -p option MUST be specified.
 #
 # Colors:
 #   normal        rgb(150,150,150)
@@ -32,6 +38,27 @@
 #   olive         rgb(128,128,000)
 
 ############################################################ 
+
+param (
+	[parameter(valuefrompipeline=$true)]
+	$text,
+	[alias('c')]
+	$color,
+	[alias('r')]
+	$rgb,
+	[alias('p')]
+	[switch]$plain,
+	[alias('i')]
+	[switch]$invert,
+	[alias('b')]
+	[switch]$bold,
+	[alias('u')]
+	[switch]$underline,
+	[alias('n')]
+	[switch]$newline,
+	[alias('h')]
+	[switch]$help
+)
 
 function usage($text) {
     $text | Select-String '(?m)^# Usage: ([^\n]*)$' | ForEach-Object { "Usage: " + $_.matches[0].groups[1].value }
@@ -75,49 +102,34 @@ $meow = "$psscriptroot\..\lib\bin\meow.ps1"
 # The ascii escape character
 $E = [char]27
 
-# Parse arguments with getopt
-. "$psscriptroot\..\lib\getopt.ps1"
-$opt, $text, $errors = getopt $args 'pc:r:ih' 'plain', 'color', 'rgb', 'invert', 'help'
-
-# There should be no errors, if there is, go nuts
-if ($errors) {
-	$errors | % {
-		"printx: $E[38;2;255;0;0merror: $_ $E[38;2;150;150;150m"
-	}
-	break
-}
-
-# Arguments
-$plain  = $opt.plain   -or $opt.p
-$color  = $opt.color   -or $opt.c
-$rgb    = $opt.rgb     -or $opt.r
-$invert = $opt.invert  -or $opt.i
-$help   = $opt.help    -or $opt.h
-
 if ($help) {
 	try {
 		$text = (Get-Content $MyInvocation.PSCommandPath -raw)
 	} catch {
 		$text = (Get-Content $PSCOMMANDPATH -raw) 
 	}
-	$help = usage $text 
-	$help += "`n"
-	$help += summary $text 
-	$help += "`n"
-	$help += help_msg $text 
-	$help | & $meow
+	$helmp = usage $text 
+	$helmp += "`n"
+	$helmp += summary $text 
+	$helmp += "`n"
+	$helmp += help_msg $text 
+	$helmp | & $meow
 }
 
+$arg = if ($newline) { "`n" }
+
 if (!$plain) {
-	if ($invert) { "$E[7m" }
-	"$E[?25l"
+	if ($invert) { write-host "$E[7m" -nonewline }
+	if ($bold) { write-host "$E[1m" -nonewline }
+	if ($underline) { write-host "$E[4m" -nonewline }
+	write-host "$E[?25l" -nonewline
 
 	if ($color) {
 		if ($colors.Contains($color)) {
 			$r = ($colors.$color)[0]
 			$g = ($colors.$color)[1]
 			$b = ($colors.$color)[2]
-			"$E[38;2;${r};${g};${b}m$text$E[38;2;150;150;150m"
+			write-host "$E[38;2;${r};${g};${b}m$text$E[38;2;150;150;150m$arg" -nonewline
 		} else {
 			"printx: $E[38;2;255;0;0merror: color $color is not valid. Use an RGB value instead.$E[38;2;150;150;150m"
 			break
@@ -128,15 +140,17 @@ if (!$plain) {
 			"printx: $E[38;2;255;0;0merror: The provided RGB value is not valid or does not have the correct delimiter.$E[38;2;150;150;150m"
 			break
 		}
-		$r = (([Int]::Parse((($rgb.Split(','))[0]))) % 255)
-		$g = (([Int]::Parse((($rgb.Split(','))[1]))) % 255)
-		$b = (([Int]::Parse((($rgb.Split(','))[2]))) % 255)
-		"$E[38;2;${r};${g};${b}m$text$E[38;2;150;150;150m"
+		$r = (([Int]::Parse((($rgb.Split(','))[0]))) % 256)
+		$g = (([Int]::Parse((($rgb.Split(','))[1]))) % 256)
+		$b = (([Int]::Parse((($rgb.Split(','))[2]))) % 256)
+		write-host "$E[38;2;${r};${g};${b}m$text$E[38;2;150;150;150m$arg" -nonewline
 	}
 
-	"$E[?25h"
-	if ($invert) { "$E[27m" }
+	write-host "$E[?25h" -nonewline
+	if ($invert) { write-host "$E[27m" -nonewline }
+	if ($bold) { write-host "$E[1m" -nonewline }
+	if ($underline) { write-host "$E[24m" -nonewline }
 }
 else {
-	"$text"
+	write-host "$text$arg" -nonewline
 }
