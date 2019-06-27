@@ -167,7 +167,7 @@ Function Printx {
 
                 $output += "$ESC[38;2;${fr};${fg};${fb};48;2;${br};${bg};${bb}m$text$ESC[49m$ESC[39m$arg"
             } else {
-                Write-Error "printx: error: color $foregroundColor is not valid. Use an RGB value instead"
+                Write-Error "printx: error: color $foregroundColor or $backgroundColor is not valid"
                 break
             }
         } elseif ($foregroundColor) {
@@ -179,7 +179,7 @@ Function Printx {
                 $b = ($colors.$foregroundColor)[2]
                 $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[39m$arg"
             } else {
-                Write-Error "printx: error: color $foregroundColor is not valid. Use an RGB value instead"
+                Write-Error "printx: error: color $foregroundColor is not valid"
                 break
             }
         } elseif ($backgroundColor) {
@@ -191,9 +191,24 @@ Function Printx {
                 $b = ($colors.$backgroundColor)[2]
                 $output += "$ESC[48;2;${r};${g};${b}m$text$ESC[49m$arg"
             } else {
-                Write-Error "printx: error: color $foregroundColor is not valid. Use an RGB value instead"
+                Write-Error "printx: error: color $foregroundColor is not valid"
                 break
             }
+        } elseif ($foregroundRgb -and $backgroundRgb) {
+            Write-Debug "foregroundRgb and backgroundRgb $foregroundRgb $backgroundRgb"
+
+            if ((($foregroundRgb.Split(',')).Count -lt 3) -or (($backgroundRgb.Split(',')).Count -lt 3)) {
+                Write-Error "printx: error: The provided RGB value is not valid or does not have the correct delimiter"
+                break
+            }
+            $fr = (([Int]::Parse((($foregroundRgb.Split(','))[0]))) % 256)
+            $fg = (([Int]::Parse((($foregroundRgb.Split(','))[1]))) % 256)
+            $fb = (([Int]::Parse((($foregroundRgb.Split(','))[2]))) % 256)
+            $br = (([Int]::Parse((($backgroundRgb.Split(','))[0]))) % 256)
+            $bg = (([Int]::Parse((($backgroundRgb.Split(','))[1]))) % 256)
+            $bb = (([Int]::Parse((($backgroundRgb.Split(','))[2]))) % 256)
+
+            $output += "$ESC[38;2;${fr};${fg};${fb};48;2;${br};${bg};${bb}m$text$ESC[49m$ESC[39m$arg"
         } elseif ($foregroundRgb) {
             Write-Debug "foregroundRgb $foregroundRgb"
 
