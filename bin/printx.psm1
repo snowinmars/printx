@@ -57,6 +57,29 @@ Function help_msg($text) {
 
 ############################################################
 
+# The color definitions
+[hashtable]$colors = @{
+    normal  =   @(150, 150, 150);
+    black   =   @(000, 000, 000);
+    white   =   @(255, 255, 255);
+    silver  =   @(192, 192, 192);
+    gray    =   @(128, 128, 128);
+    yellow  =   @(255, 255, 000);
+    gold    =   @(255, 215, 000);
+    orange  =   @(255, 165, 000);
+    red     =   @(255, 000, 000);
+    cyan    =   @(000, 255, 255);
+    teal    =   @(000, 128, 128);
+    blue    =   @(000, 000, 255);
+    navy    =   @(000, 000, 128);
+    magenta =   @(255, 000, 255);
+    purple  =   @(128, 000, 128);
+    maroon  =   @(128, 000, 000);
+    green   =   @(000, 128, 000);
+    lime    =   @(000, 255, 000);
+    olive   =   @(128, 128, 000);
+}
+
 Function Printx {
     [CmdletBinding()]
     param (
@@ -82,32 +105,8 @@ Function Printx {
 
     $meow = "$psscriptroot\..\lib\bin\meow.ps1"
 
-    # The color definitions
-    [hashtable]$colors = @{
-        normal  =   @(150, 150, 150);
-        black   =   @(000, 000, 000);
-        white   =   @(255, 255, 255);
-        silver  =   @(192, 192, 192);
-        gray    =   @(128, 128, 128);
-        yellow  =   @(255, 255, 000);
-        gold    =   @(255, 215, 000);
-        orange  =   @(255, 165, 000);
-        red     =   @(255, 000, 000);
-        cyan    =   @(000, 255, 255);
-        teal    =   @(000, 128, 128);
-        blue    =   @(000, 000, 255);
-        navy    =   @(000, 000, 128);
-        magenta =   @(255, 000, 255);
-        purple  =   @(128, 000, 128);
-        maroon  =   @(128, 000, 000);
-        green   =   @(000, 128, 000);
-        lime    =   @(000, 255, 000);
-        olive   =   @(128, 128, 000);
-
-    }
-
     # The ascii escape character
-    $E = [char]27
+    $ESC = [char]27
 
     if ($help) {
         try {
@@ -125,41 +124,41 @@ Function Printx {
 
     $arg = if ($newline) { "`n" }
 
-    if (!$plain) {
-        if ($invert) { write-host "$E[7m" -nonewline }
-        if ($bold) { write-host "$E[1m" -nonewline }
-        if ($underline) { write-host "$E[4m" -nonewline }
-        write-host "$E[?25l" -nonewline
+    if ($plain) {
+        write-host "$text$arg" -nonewline
+    }
+    else {
+        if ($invert) { write-host "$ESC[7m" -nonewline }
+        if ($bold) { write-host "$ESC[1m" -nonewline }
+        if ($underline) { write-host "$ESC[4m" -nonewline }
+        write-host "$ESC[?25l" -nonewline
 
         if ($color) {
             if ($colors.Contains($color)) {
                 $r = ($colors.$color)[0]
                 $g = ($colors.$color)[1]
                 $b = ($colors.$color)[2]
-                write-host "$E[38;2;${r};${g};${b}m$text$E[38;2;150;150;150m$arg" -nonewline
+                write-host "$ESC[38;2;${r};${g};${b}m$text$ESC[38;2;150;150;150m$arg" -nonewline
             } else {
-                "printx: $E[38;2;255;0;0merror: color $color is not valid. Use an RGB value instead.$E[38;2;150;150;150m"
+                "printx: $ESC[38;2;255;0;0merror: color $color is not valid. Use an RGB value instead.$ESC[38;2;150;150;150m"
                 break
             }
         }
         elseif ($rgb) {
             if (($rgb.Split(',')).Count -lt 3) {
-                "printx: $E[38;2;255;0;0merror: The provided RGB value is not valid or does not have the correct delimiter.$E[38;2;150;150;150m"
+                "printx: $ESC[38;2;255;0;0merror: The provided RGB value is not valid or does not have the correct delimiter.$ESC[38;2;150;150;150m"
                 break
             }
             $r = (([Int]::Parse((($rgb.Split(','))[0]))) % 256)
             $g = (([Int]::Parse((($rgb.Split(','))[1]))) % 256)
             $b = (([Int]::Parse((($rgb.Split(','))[2]))) % 256)
-            write-host "$E[38;2;${r};${g};${b}m$text$E[38;2;150;150;150m$arg" -nonewline
+            write-host "$ESC[38;2;${r};${g};${b}m$text$ESC[38;2;150;150;150m$arg" -nonewline
         }
 
-        write-host "$E[?25h" -nonewline
-        if ($invert) { write-host "$E[27m" -nonewline }
-        if ($bold) { write-host "$E[1m" -nonewline }
-        if ($underline) { write-host "$E[24m" -nonewline }
-    }
-    else {
-        write-host "$text$arg" -nonewline
+        write-host "$ESC[?25h" -nonewline
+        if ($underline) { write-host "$ESC[24m" -nonewline }
+        if ($bold) { write-host "$ESC[1m" -nonewline }
+        if ($invert) { write-host "$ESC[27m" -nonewline }
     }
 }
 
