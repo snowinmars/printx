@@ -89,7 +89,7 @@ Function Printx {
         [parameter(valuefrompipeline=$true)]
         $text,
         [alias('c')]
-        $color,
+        $foregroundColor,
         [alias('r')]
         $rgb,
         [alias('p')]
@@ -130,7 +130,7 @@ Function Printx {
     $arg = if ($newline) { "`n" }
 
     if (-not $plain) {
-        $plain = (-not $invert) -and (-not $bold) -and (-not $underline) -and (-not $color) -and (-not $rgb)
+        $plain = (-not $invert) -and (-not $bold) -and (-not $underline) -and (-not $foregroundColor) -and (-not $rgb)
     }
 
     if ($plain) {
@@ -144,11 +144,11 @@ Function Printx {
         if ($underline) { $output += "$ESC[4m" }
         $output += "$ESC[?25l" # no cursor
 
-        if ($color) {
-            if ($colors.Contains($color)) {
-                $r = ($colors.$color)[0]
-                $g = ($colors.$color)[1]
-                $b = ($colors.$color)[2]
+        if ($foregroundColor) {
+            if ($colors.Contains($foregroundColor)) {
+                $r = ($colors.$foregroundColor)[0]
+                $g = ($colors.$foregroundColor)[1]
+                $b = ($colors.$foregroundColor)[2]
                 $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[39m$arg"
             } else {
                 Write-Error "printx: error: color $color is not valid. Use an RGB value instead"
