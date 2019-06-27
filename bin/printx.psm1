@@ -5,6 +5,8 @@
 # Summary: A better Write-Host that lets you print text in full RGB colors.
 # Help: Print RGB text or plain text with printx.
 #
+# List of ANSI codes: https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
+#
 # Options:
 #   -c, -color   [color]         Print text in one of the 19 colors specified below.
 #   -r, -rgb     ['r,g,b']       Print text with an RGB color.
@@ -125,41 +127,47 @@ Function Printx {
     $arg = if ($newline) { "`n" }
 
     if ($plain) {
-        write-host "$text$arg" -nonewline
+        $output = "$text$arg"
     }
     else {
-        if ($invert) { write-host "$ESC[7m" -nonewline }
-        if ($bold) { write-host "$ESC[1m" -nonewline }
-        if ($underline) { write-host "$ESC[4m" -nonewline }
-        write-host "$ESC[?25l" -nonewline
+        $output = "$ESC[0m" # start with no modifiers
+
+        if ($invert) { $output += "$ESC[7m" }
+        if ($bold) { $output += "$ESC[1m" }
+        if ($underline) { $output += "$ESC[4m" }
+        $output += "$ESC[?25l"
 
         if ($color) {
             if ($colors.Contains($color)) {
                 $r = ($colors.$color)[0]
                 $g = ($colors.$color)[1]
                 $b = ($colors.$color)[2]
-                write-host "$ESC[38;2;${r};${g};${b}m$text$ESC[38;2;150;150;150m$arg" -nonewline
+                $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[38;2;150;150;150m$arg"
             } else {
-                "printx: $ESC[38;2;255;0;0merror: color $color is not valid. Use an RGB value instead.$ESC[38;2;150;150;150m"
+                Write-Error "printx: $ESC[38;2;255;0;0merror: color $color is not valid. Use an RGB value instead.$ESC[38;2;150;150;150m"
                 break
             }
         }
         elseif ($rgb) {
             if (($rgb.Split(',')).Count -lt 3) {
-                "printx: $ESC[38;2;255;0;0merror: The provided RGB value is not valid or does not have the correct delimiter.$ESC[38;2;150;150;150m"
+                Write-Error "printx: $ESC[38;2;255;0;0merror: The provided RGB value is not valid or does not have the correct delimiter.$ESC[38;2;150;150;150m"
                 break
             }
             $r = (([Int]::Parse((($rgb.Split(','))[0]))) % 256)
             $g = (([Int]::Parse((($rgb.Split(','))[1]))) % 256)
             $b = (([Int]::Parse((($rgb.Split(','))[2]))) % 256)
-            write-host "$ESC[38;2;${r};${g};${b}m$text$ESC[38;2;150;150;150m$arg" -nonewline
+            $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[38;2;150;150;150m$arg"
         }
 
-        write-host "$ESC[?25h" -nonewline
-        if ($underline) { write-host "$ESC[24m" -nonewline }
-        if ($bold) { write-host "$ESC[1m" -nonewline }
-        if ($invert) { write-host "$ESC[27m" -nonewline }
+        $output += "$ESC[?25h"
+        if ($underline) { $output += "$ESC[24m" }
+        if ($bold) { $output += "$ESC[1m" }
+        if ($invert) { $output += "$ESC[27m" }
+
+        $output += "$ESC[0m" # continue with no modifiers
     }
+
+    Write-Output $output
 }
 
 Export-ModuleMember -Function 'Printx'
