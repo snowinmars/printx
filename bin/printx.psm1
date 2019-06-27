@@ -135,14 +135,14 @@ Function Printx {
         if ($invert) { $output += "$ESC[7m" }
         if ($bold) { $output += "$ESC[1m" }
         if ($underline) { $output += "$ESC[4m" }
-        $output += "$ESC[?25l"
+        $output += "$ESC[?25l" # no cursor
 
         if ($color) {
             if ($colors.Contains($color)) {
                 $r = ($colors.$color)[0]
                 $g = ($colors.$color)[1]
                 $b = ($colors.$color)[2]
-                $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[38;2;150;150;150m$arg"
+                $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[39m$arg"
             } else {
                 Write-Error "printx: error: color $color is not valid. Use an RGB value instead"
                 break
@@ -156,7 +156,7 @@ Function Printx {
             $r = (([Int]::Parse((($rgb.Split(','))[0]))) % 256)
             $g = (([Int]::Parse((($rgb.Split(','))[1]))) % 256)
             $b = (([Int]::Parse((($rgb.Split(','))[2]))) % 256)
-            $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[38;2;150;150;150m$arg"
+            $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[39m$arg"
         }
 
         $output += "$ESC[?25h"
