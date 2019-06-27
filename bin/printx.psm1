@@ -153,6 +153,8 @@ Function Printx {
         $output += "$ESC[?25l" # no cursor
 
         if ($foregroundColor -and $backgroundColor) {
+            Write-Debug "foregroundColor and backgroundColor $foregroundColor $backgroundColor"
+
             if ($colors.Contains($foregroundColor) -and $colors.Contains($backgroundColor)) {
                 $fr = ($colors.$foregroundColor)[0]
                 $fg = ($colors.$foregroundColor)[1]
@@ -167,6 +169,8 @@ Function Printx {
                 break
             }
         } elseif ($foregroundColor) {
+            Write-Debug "foregroundColor $foregroundColor"
+
             if ($colors.Contains($foregroundColor)) {
                 $r = ($colors.$foregroundColor)[0]
                 $g = ($colors.$foregroundColor)[1]
@@ -177,6 +181,8 @@ Function Printx {
                 break
             }
         } elseif ($backgroundColor) {
+            Write-Debug "backgroundColor $backgroundColor"
+
             if ($colors.Contains($backgroundColor)) {
                 $r = ($colors.$backgroundColor)[0]
                 $g = ($colors.$backgroundColor)[1]
@@ -188,6 +194,8 @@ Function Printx {
             }
         }
         elseif ($rgb) {
+            Write-Debug "rgb $rgb"
+
             if (($rgb.Split(',')).Count -lt 3) {
                 Write-Error "printx: error: The provided RGB value is not valid or does not have the correct delimiter"
                 break
