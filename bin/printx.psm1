@@ -90,6 +90,8 @@ Function Printx {
         $text,
         [alias('c')]
         $foregroundColor,
+        [alias('d')]
+        $backgroundColor,
         [alias('r')]
         $rgb,
         [alias('p')]
@@ -136,7 +138,7 @@ Function Printx {
     $arg = if ($newline) { "`n" }
 
     if (-not $plain) {
-        $plain = (-not $invert) -and (-not $bold) -and (-not $underline) -and (-not $foregroundColor) -and (-not $rgb)
+        $plain = (-not $invert) -and (-not $bold) -and (-not $underline) -and (-not $foregroundColor) -and (-not $backgroundColor) -and (-not $rgb)
     }
 
     if ($plain) {
@@ -150,14 +152,38 @@ Function Printx {
         if ($underline) { $output += "$ESC[4m" }
         $output += "$ESC[?25l" # no cursor
 
-        if ($foregroundColor) {
+        if ($foregroundColor -and $backgroundColor) {
+            if ($colors.Contains($foregroundColor) -and $colors.Contains($backgroundColor)) {
+                $fr = ($colors.$foregroundColor)[0]
+                $fg = ($colors.$foregroundColor)[1]
+                $fb = ($colors.$foregroundColor)[2]
+                $br = ($colors.$backgroundColor)[0]
+                $bg = ($colors.$backgroundColor)[1]
+                $bb = ($colors.$backgroundColor)[2]
+
+                $output += "$ESC[38;2;${fr};${fg};${fb};48;2;${br};${bg};${bb}m$text$ESC[49m$ESC[39m$arg"
+            } else {
+                Write-Error "printx: error: color $foregroundColor is not valid. Use an RGB value instead"
+                break
+            }
+        } elseif ($foregroundColor) {
             if ($colors.Contains($foregroundColor)) {
                 $r = ($colors.$foregroundColor)[0]
                 $g = ($colors.$foregroundColor)[1]
                 $b = ($colors.$foregroundColor)[2]
                 $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[39m$arg"
             } else {
-                Write-Error "printx: error: color $color is not valid. Use an RGB value instead"
+                Write-Error "printx: error: color $foregroundColor is not valid. Use an RGB value instead"
+                break
+            }
+        } elseif ($backgroundColor) {
+            if ($colors.Contains($backgroundColor)) {
+                $r = ($colors.$backgroundColor)[0]
+                $g = ($colors.$backgroundColor)[1]
+                $b = ($colors.$backgroundColor)[2]
+                $output += "$ESC[48;2;${r};${g};${b}m$text$ESC[49m$arg"
+            } else {
+                Write-Error "printx: error: color $foregroundColor is not valid. Use an RGB value instead"
                 break
             }
         }
