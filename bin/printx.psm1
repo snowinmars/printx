@@ -127,6 +127,10 @@ Function Printx {
 
     $arg = if ($newline) { "`n" }
 
+    if (-not $plain) {
+        $plain = (-not $invert) -and (-not $bold) -and (-not $underline) -and (-not $color) -and (-not $rgb)
+    }
+
     if ($plain) {
         $output = "$text$arg"
     }
