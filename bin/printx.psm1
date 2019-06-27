@@ -5,22 +5,7 @@
 #   $str = Printx "test" -r '255,0,0'
 # Beware: a terminal in an IDE could override colors
 #
-# Summary: A better Write-Host that lets you print text in full RGB colors.
-# Help: Print RGB text or plain text with printx.
-#
 # List of ANSI codes: https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
-#
-# Options:
-#   -c, -color   [color]         Print text in one of the 19 colors specified below.
-#   -r, -rgb     ['r,g,b']       Print text with an RGB color.
-#
-#   -i, -invert                  Swap background and foreground colors.
-#   -p, -plain                   Print plain, redirectable text.
-#   -u, -underline               Print underlined text.
-#   -b, -bold                    Print bold text (on supported consoles)
-#   -n, -newline                 Print a newline after the text
-#
-#   -h, -help                    Print this help message.
 #
 # Colors:
 #   normal        rgb(150,150,150)
@@ -45,17 +30,109 @@
 
 ############################################################
 
-Function usage($text) {
-    $text | Select-String '(?m)^# Usage: ([^\n]*)$' | ForEach-Object { "Usage: " + $_.matches[0].groups[1].value }
+Function Format-Tag {
+    param (
+        $raw
+    )
+
+    Write-Output "$ESC[${raw}m"
 }
 
-Function summary($text) {
-    $text | Select-String '(?m)^# Summary: ([^\n]*)$' | ForEach-Object { $_.matches[0].groups[1].value }
+Function Get-ForegroundOpenTag {
+    param (
+        $r,
+        $g,
+        $b
+    )
+
+    $str = Get-ForegroundOpen $r $g $b
+    Format-Tag $str
 }
 
-Function help_msg($text) {
-    $help_lines = $text | Select-String '(?ms)^# Help:(.(?!^[^#]))*' | ForEach-Object { $_.matches[0].value; }
-    $help_lines -replace '(?ms)^#\s?(Help: )?', ''
+Function Get-BackgroundOpenTag {
+    param (
+        $r,
+        $g,
+        $b
+    )
+
+    $str = Get-BackgroundOpen $r $g $b
+    Format-Tag $str
+}
+
+Function Get-ForegroundOpen {
+    param (
+        $r,
+        $g,
+        $b
+    )
+
+    Write-Output "38;2;${r};${g};${b}"
+}
+
+Function Get-BackgroundOpen {
+    param (
+        $r,
+        $g,
+        $b
+    )
+
+    Write-Output "48;2;${r};${g};${b}"
+}
+
+Function Get-ForegroundCloseTag {
+    Format-Tag "39"
+}
+
+Function Get-BackgroundCloseTag {
+    Format-Tag "49"
+}
+
+Function Format-Output {
+    param (
+        $openTag,
+        $text,
+        $closeTag,
+        $arg
+    )
+
+    Write-Output "$openTag$text$closeTag$arg"
+}
+
+Function Get-ColorsFromColorName {
+    param (
+        $colorName
+    )
+
+    if (-not ($colors.Contains($colorName))) {
+        Write-Error "printx: error: color $colorName is not valid"
+        break
+    }
+
+    if ($colors.Contains($colorName)) {
+        Write-Output @(($colors.$colorName)[0],
+                       ($colors.$colorName)[1],
+                       ($colors.$colorName)[2])
+    } else {
+        Write-Error "printx: error: color $colorName is not valid"
+        break
+    }
+}
+
+Function Get-ColorsFromArray {
+    param (
+        [parameter(ValueFromPipeline=$true)]
+        $array
+    )
+
+    if (($array.Split(',')).Count -lt 3) {
+        Write-Error "printx: error: The provided RGB value is not valid or does not have the correct delimiter"
+        break
+    }
+
+    Write-Output @((([Int]::Parse((($array.Split(','))[0]))) % 256),
+                   (([Int]::Parse((($array.Split(','))[1]))) % 256),
+                   (([Int]::Parse((($array.Split(','))[2]))) % 256))
 }
 
 ############################################################
@@ -84,17 +161,136 @@ Function help_msg($text) {
 }
 
 Function Printx {
+    <#
+        .SYNOPSIS
+            Write decorated colorfull text to the output pipe
+
+        .EXAMPLE
+            # In this example the 'invert' and 'underline' filters applied to the "test" string
+            Import-Module '.\printx.psm1' -Force
+            Printx "test" -u -i
+
+        .EXAMPLE
+            # In this example the 'foreground color' filter applied to the "test" string
+            Import-Module '.\printx.psm1' -Force
+            Printx "test" -fc 'yellow' | Write-Information -InformationAction Continue
+
+        .EXAMPLE
+            # In this example the 'backgound rbg' and 'foreground color' filters applies to the "test" string
+            Import-Module '.\printx.psm1' -Force
+            $str = Printx "test" -br '255,0,0' -fc 'blue'
+
+        .PARAMETER text
+            Alias: N/A
+            Data Type: String
+            Mandatory: True
+            Description: The input text
+            Example(s): 'test'
+            Default Value: N/A
+            Notes: N/A
+
+        .PARAMETER foregroundColor
+            Alias: fc
+            Data Type: String
+            Mandatory: False
+            Description: The one of the standart colors. Can't be provided along with 'foregroundRgb' parameter
+            Example(s): 'yellow'
+            Default Value: N/A
+            Notes: See colors list: https://blogs.technet.microsoft.com/gary/2013/11/20/sample-all-powershell-console-colors/
+
+        .PARAMETER backgroundColor
+            Alias: bc
+            Data Type: String
+            Mandatory: False
+            Description: The one of the standart colors. Can't be provided along with 'backgroundRgb' parameter
+            Example(s): 'yellow'
+            Default Value: N/A
+            Notes: See colors list: https://blogs.technet.microsoft.com/gary/2013/11/20/sample-all-powershell-console-colors/
+
+        .PARAMETER foregroundRgb
+            Alias: fr
+            Data Type: String
+            Mandatory: False
+            Description: String with rgb values, separated by comma. Can't be provided along with 'foregroundColor' parameter
+            Example(s): '255,0,0'
+            Default Value: N/A
+            Notes: See colors list: https://blogs.technet.microsoft.com/gary/2013/11/20/sample-all-powershell-console-colors/
+
+        .PARAMETER backgroundRgb
+            Alias: br
+            Data Type: String
+            Mandatory: False
+            Description: String with rgb values, separated by comma. Can't be provided along with 'backgroundColor' parameter
+            Example(s): '255,0,0'
+            Default Value: N/A
+            Notes: See colors list: https://blogs.technet.microsoft.com/gary/2013/11/20/sample-all-powershell-console-colors/
+
+        .PARAMETER plain
+            Alias: p
+            Data Type: switch
+            Mandatory: False
+            Description: Write text as plain
+            Example(s): N/A
+            Default Value: N/A
+            Notes: N/A
+
+        .PARAMETER invert
+            Alias: i
+            Data Type: switch
+            Mandatory: False
+            Description: Write text as inverted (switch foreground to background)
+            Example(s): N/A
+            Default Value: N/A
+            Notes: N/A
+
+        .PARAMETER bold
+            Alias: b
+            Data Type: switch
+            Mandatory: False
+            Description: Write text as bold/bright
+            Example(s): N/A
+            Default Value: N/A
+            Notes: N/A
+
+        .PARAMETER underline
+            Alias: u
+            Data Type: switch
+            Mandatory: False
+            Description: Write text as underlined
+            Example(s): N/A
+            Default Value: N/A
+            Notes: N/A
+
+        .PARAMETER newline
+            Alias: n
+            Data Type: switch
+            Mandatory: False
+            Description: Place new line after text
+            Example(s): N/A
+            Default Value: N/A
+            Notes: N/A
+
+        .PARAMETER help
+            Alias: h
+            Data Type: switch
+            Mandatory: False
+            Description: Show help
+            Example(s): N/A
+            Default Value: N/A
+            Notes: N/A
+    #>
+
     [CmdletBinding()]
     param (
         [parameter(valuefrompipeline=$true)]
-        $text,
-        [alias('c')]
+        [string]$text,
+        [alias('fc')]
         $foregroundColor,
-        [alias('d')]
+        [alias('bc')]
         $backgroundColor,
-        [alias('r')]
+        [alias('fr')]
         $foregroundRgb,
-        [alias('g')]
+        [alias('br')]
         $backgroundRgb,
         [alias('p')]
         [switch]$plain,
@@ -113,7 +309,7 @@ Function Printx {
     $meow = "$psscriptroot\..\lib\bin\meow.ps1"
 
     # The ascii escape character
-     $isDebug = $DebugPreference -ne "SilentlyContinue"
+    $isDebug = $DebugPreference -ne "SilentlyContinue"
 
     if ($isDebug) {
         $ESC = "(char)27"
@@ -122,126 +318,102 @@ Function Printx {
     }
 
     if ($help) {
-        try {
-            $text = (Get-Content $MyInvocation.PSCommandPath -raw)
-        } catch {
-            $text = (Get-Content $PSCOMMANDPATH -raw)
-        }
-        $helmp = usage $text
-        $helmp += "`n"
-        $helmp += summary $text
-        $helmp += "`n"
-        $helmp += help_msg $text
-        $helmp | & $meow
+        Get-Help -Name Printx -Full
 
         return;
     }
 
     $arg = if ($newline) { "`n" }
 
+
     if (-not $plain) {
-        $plain = (-not $invert) -and (-not $bold) -and (-not $underline) -and (-not $foregroundColor) -and (-not $backgroundColor) -and (-not $foregroundRgb) -and (-not $backgroundRgb)
+        $plain = (-not $invert) -and `
+                 (-not $bold) -and `
+                 (-not $underline) -and `
+                 (-not $foregroundColor) -and `
+                 (-not $backgroundColor) -and `
+                 (-not $foregroundRgb) -and `
+                 (-not $backgroundRgb)
     }
 
     if ($plain) {
-        $output = "$text$arg"
-    }
-    else {
-        $output = "$ESC[0m" # start with no modifiers
-
-        if ($invert) { $output += "$ESC[7m" }
-        if ($bold) { $output += "$ESC[1m" }
-        if ($underline) { $output += "$ESC[4m" }
-        $output += "$ESC[?25l" # no cursor
-
-        if ($foregroundColor -and $backgroundColor) {
-            Write-Debug "foregroundColor and backgroundColor $foregroundColor $backgroundColor"
-
-            if ($colors.Contains($foregroundColor) -and $colors.Contains($backgroundColor)) {
-                $fr = ($colors.$foregroundColor)[0]
-                $fg = ($colors.$foregroundColor)[1]
-                $fb = ($colors.$foregroundColor)[2]
-                $br = ($colors.$backgroundColor)[0]
-                $bg = ($colors.$backgroundColor)[1]
-                $bb = ($colors.$backgroundColor)[2]
-
-                $output += "$ESC[38;2;${fr};${fg};${fb};48;2;${br};${bg};${bb}m$text$ESC[49m$ESC[39m$arg"
-            } else {
-                Write-Error "printx: error: color $foregroundColor or $backgroundColor is not valid"
-                break
-            }
-        } elseif ($foregroundColor) {
-            Write-Debug "foregroundColor $foregroundColor"
-
-            if ($colors.Contains($foregroundColor)) {
-                $r = ($colors.$foregroundColor)[0]
-                $g = ($colors.$foregroundColor)[1]
-                $b = ($colors.$foregroundColor)[2]
-                $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[39m$arg"
-            } else {
-                Write-Error "printx: error: color $foregroundColor is not valid"
-                break
-            }
-        } elseif ($backgroundColor) {
-            Write-Debug "backgroundColor $backgroundColor"
-
-            if ($colors.Contains($backgroundColor)) {
-                $r = ($colors.$backgroundColor)[0]
-                $g = ($colors.$backgroundColor)[1]
-                $b = ($colors.$backgroundColor)[2]
-                $output += "$ESC[48;2;${r};${g};${b}m$text$ESC[49m$arg"
-            } else {
-                Write-Error "printx: error: color $foregroundColor is not valid"
-                break
-            }
-        } elseif ($foregroundRgb -and $backgroundRgb) {
-            Write-Debug "foregroundRgb and backgroundRgb $foregroundRgb $backgroundRgb"
-
-            if ((($foregroundRgb.Split(',')).Count -lt 3) -or (($backgroundRgb.Split(',')).Count -lt 3)) {
-                Write-Error "printx: error: The provided RGB value is not valid or does not have the correct delimiter"
-                break
-            }
-            $fr = (([Int]::Parse((($foregroundRgb.Split(','))[0]))) % 256)
-            $fg = (([Int]::Parse((($foregroundRgb.Split(','))[1]))) % 256)
-            $fb = (([Int]::Parse((($foregroundRgb.Split(','))[2]))) % 256)
-            $br = (([Int]::Parse((($backgroundRgb.Split(','))[0]))) % 256)
-            $bg = (([Int]::Parse((($backgroundRgb.Split(','))[1]))) % 256)
-            $bb = (([Int]::Parse((($backgroundRgb.Split(','))[2]))) % 256)
-
-            $output += "$ESC[38;2;${fr};${fg};${fb};48;2;${br};${bg};${bb}m$text$ESC[49m$ESC[39m$arg"
-        } elseif ($foregroundRgb) {
-            Write-Debug "foregroundRgb $foregroundRgb"
-
-            if (($foregroundRgb.Split(',')).Count -lt 3) {
-                Write-Error "printx: error: The provided RGB value is not valid or does not have the correct delimiter"
-                break
-            }
-            $r = (([Int]::Parse((($foregroundRgb.Split(','))[0]))) % 256)
-            $g = (([Int]::Parse((($foregroundRgb.Split(','))[1]))) % 256)
-            $b = (([Int]::Parse((($foregroundRgb.Split(','))[2]))) % 256)
-            $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[39m$arg"
-        } elseif ($backgroundRgb) {
-            Write-Debug "backgroundRgb $backgroundRgb"
-
-            if (($backgroundRgb.Split(',')).Count -lt 3) {
-                Write-Error "printx: error: The provided RGB value is not valid or does not have the correct delimiter"
-                break
-            }
-            $r = (([Int]::Parse((($backgroundRgb.Split(','))[0]))) % 256)
-            $g = (([Int]::Parse((($backgroundRgb.Split(','))[1]))) % 256)
-            $b = (([Int]::Parse((($backgroundRgb.Split(','))[2]))) % 256)
-            $output += "$ESC[48;2;${r};${g};${b}m$text$ESC[49m$arg"
-        } else {
-            $output += $text
+        if (-not $text) {
+            Get-Help -Name Printx -Full
+            return;
         }
 
-        $output += "$ESC[?25h" # allow cursor
-        if ($underline) { $output += "$ESC[24m" }
-        if ($bold) { $output += "$ESC[1m" }
-        if ($invert) { $output += "$ESC[27m" }
-
-        $output += "$ESC[0m" # continue with no modifiers
+        Format-Output "" $text "" $arg
+        return
     }
+
+
+    if (($foregroundColor -and $foregroundRgb) `
+        -or `
+        ($backgroundColor -and $backgroundRgb)) {
+        Write-Error "You can't specify several colors for one slot"
+        return;
+    }
+
+
+    if ($foregroundColor) {
+        $foregroundArray = Get-ColorsFromColorName $foregroundColor
+    }
+
+    if ($foregroundRgb) {
+        $foregroundArray = $foregroundRgb | Get-ColorsFromArray
+    }
+
+    if ($backgroundColor) {
+        $backgroundArray = Get-ColorsFromColorName $backgroundColor
+    }
+
+    if ($backgroundRgb) {
+        $backgroundArray = $backgroundRgb | Get-ColorsFromArray
+    }
+
+
+    $output = "$ESC[0m" # start with no modifiers
+
+    if ($invert) { $output += "$ESC[7m" }
+    if ($bold) { $output += "$ESC[1m" }
+    if ($underline) { $output += "$ESC[4m" }
+    $output += "$ESC[?25l" # no cursor
+
+    if ($foregroundArray -and $backgroundArray) {
+        Write-Debug "foregroundArray and backgroundArray $foregroundArray $backgroundArray"
+
+        $fOpen = Get-ForegroundOpen $foregroundArray[0] $foregroundArray[1] $foregroundArray[2]
+        $fClose = Get-ForegroundCloseTag
+        $bOpen = Get-BackgroundOpen $backgroundArray[0] $backgroundArray[1] $backgroundArray[2]
+        $bClose = Get-BackgroundCloseTag
+
+        $open = Format-Tag "${fOpen};${bOpen}"
+        $close = "$bClose$fClose"
+
+        $output += Format-Output $open $text $close $arg
+    } elseif ($foregroundArray) {
+        Write-Debug "foregroundArray $foregroundArray"
+        $open = Get-ForegroundOpenTag $foregroundArray[0] $foregroundArray[1] $foregroundArray[2]
+        $close = Get-ForegroundCloseTag
+
+        $output += Format-Output $open $text $close $arg
+    } elseif ($backgroundArray) {
+        Write-Debug "backgroundArray $backgroundArray"
+        $open = Get-BackgroundOpenTag $backgroundArray[0] $backgroundArray[1] $backgroundArray[2]
+        $close = Get-BackgroundCloseTag
+
+        $output += Format-Output $open $text $close $arg
+    } else {
+        Write-Debug "plain"
+        $output += $text
+    }
+
+    $output += "$ESC[?25h" # allow cursor
+    if ($underline) { $output += "$ESC[24m" }
+    if ($bold) { $output += "$ESC[1m" }
+    if ($invert) { $output += "$ESC[27m" }
+
+    $output += "$ESC[0m" # continue with no modifiers
 
     Write-Output $output
 }
