@@ -109,7 +109,13 @@ Function Printx {
     $meow = "$psscriptroot\..\lib\bin\meow.ps1"
 
     # The ascii escape character
-    $ESC = [char]27
+     $isDebug = $DebugPreference -ne "SilentlyContinue"
+
+    if ($isDebug) {
+        $ESC = "(char)27"
+    } else {
+        $ESC = [char]27
+    }
 
     if ($help) {
         try {
