@@ -162,6 +162,8 @@ Function Printx {
             $g = (([Int]::Parse((($rgb.Split(','))[1]))) % 256)
             $b = (([Int]::Parse((($rgb.Split(','))[2]))) % 256)
             $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[39m$arg"
+        } else {
+            $output += $text
         }
 
         $output += "$ESC[?25h"
