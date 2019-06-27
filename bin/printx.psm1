@@ -1,6 +1,9 @@
-# Usage: printx ['text'] [options]
-#   Import-Module '.\_printx.psm1' -Force
-#   Print "test" -u -i
+# Usage: Printx ['text'] [options]
+#   Import-Module '.\printx.psm1' -Force
+#   Printx "test" -u -i
+#   Printx "test" -c 'yellow' | Write-Information -InformationAction Continue
+#   $str = Printx "test" -r '255,0,0'
+# Beware: a terminal in an IDE could override colors
 #
 # Summary: A better Write-Host that lets you print text in full RGB colors.
 # Help: Print RGB text or plain text with printx.
@@ -18,8 +21,6 @@
 #   -n, -newline                 Print a newline after the text
 #
 #   -h, -help                    Print this help message.
-#
-# Note: if you do not want any color, the -p option MUST be specified.
 #
 # Colors:
 #   normal        rgb(150,150,150)
