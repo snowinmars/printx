@@ -144,13 +144,13 @@ Function Printx {
                 $b = ($colors.$color)[2]
                 $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[38;2;150;150;150m$arg"
             } else {
-                Write-Error "printx: $ESC[38;2;255;0;0merror: color $color is not valid. Use an RGB value instead.$ESC[38;2;150;150;150m"
+                Write-Error "printx: error: color $color is not valid. Use an RGB value instead"
                 break
             }
         }
         elseif ($rgb) {
             if (($rgb.Split(',')).Count -lt 3) {
-                Write-Error "printx: $ESC[38;2;255;0;0merror: The provided RGB value is not valid or does not have the correct delimiter.$ESC[38;2;150;150;150m"
+                Write-Error "printx: error: The provided RGB value is not valid or does not have the correct delimiter"
                 break
             }
             $r = (([Int]::Parse((($rgb.Split(','))[0]))) % 256)
