@@ -1,4 +1,7 @@
 # Usage: printx ['text'] [options]
+#   Import-Module '.\_printx.psm1' -Force
+#   Print "test" -u -i
+#
 # Summary: A better Write-Host that lets you print text in full RGB colors.
 # Help: Print RGB text or plain text with printx.
 #
