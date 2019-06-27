@@ -93,7 +93,9 @@ Function Printx {
         [alias('d')]
         $backgroundColor,
         [alias('r')]
-        $rgb,
+        $foregroundRgb,
+        [alias('g')]
+        $backgroundRgb,
         [alias('p')]
         [switch]$plain,
         [alias('i')]
@@ -138,7 +140,7 @@ Function Printx {
     $arg = if ($newline) { "`n" }
 
     if (-not $plain) {
-        $plain = (-not $invert) -and (-not $bold) -and (-not $underline) -and (-not $foregroundColor) -and (-not $backgroundColor) -and (-not $rgb)
+        $plain = (-not $invert) -and (-not $bold) -and (-not $underline) -and (-not $foregroundColor) -and (-not $backgroundColor) -and (-not $foregroundRgb) -and (-not $backgroundRgb)
     }
 
     if ($plain) {
@@ -192,18 +194,28 @@ Function Printx {
                 Write-Error "printx: error: color $foregroundColor is not valid. Use an RGB value instead"
                 break
             }
-        }
-        elseif ($rgb) {
-            Write-Debug "rgb $rgb"
+        } elseif ($foregroundRgb) {
+            Write-Debug "foregroundRgb $foregroundRgb"
 
-            if (($rgb.Split(',')).Count -lt 3) {
+            if (($foregroundRgb.Split(',')).Count -lt 3) {
                 Write-Error "printx: error: The provided RGB value is not valid or does not have the correct delimiter"
                 break
             }
-            $r = (([Int]::Parse((($rgb.Split(','))[0]))) % 256)
-            $g = (([Int]::Parse((($rgb.Split(','))[1]))) % 256)
-            $b = (([Int]::Parse((($rgb.Split(','))[2]))) % 256)
+            $r = (([Int]::Parse((($foregroundRgb.Split(','))[0]))) % 256)
+            $g = (([Int]::Parse((($foregroundRgb.Split(','))[1]))) % 256)
+            $b = (([Int]::Parse((($foregroundRgb.Split(','))[2]))) % 256)
             $output += "$ESC[38;2;${r};${g};${b}m$text$ESC[39m$arg"
+        } elseif ($backgroundRgb) {
+            Write-Debug "backgroundRgb $backgroundRgb"
+
+            if (($backgroundRgb.Split(',')).Count -lt 3) {
+                Write-Error "printx: error: The provided RGB value is not valid or does not have the correct delimiter"
+                break
+            }
+            $r = (([Int]::Parse((($backgroundRgb.Split(','))[0]))) % 256)
+            $g = (([Int]::Parse((($backgroundRgb.Split(','))[1]))) % 256)
+            $b = (([Int]::Parse((($backgroundRgb.Split(','))[2]))) % 256)
+            $output += "$ESC[48;2;${r};${g};${b}m$text$ESC[49m$arg"
         } else {
             $output += $text
         }
