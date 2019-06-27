@@ -123,6 +123,8 @@ Function Printx {
         $helmp += "`n"
         $helmp += help_msg $text
         $helmp | & $meow
+
+        return;
     }
 
     $arg = if ($newline) { "`n" }
@@ -166,7 +168,7 @@ Function Printx {
             $output += $text
         }
 
-        $output += "$ESC[?25h"
+        $output += "$ESC[?25h" # allow cursor
         if ($underline) { $output += "$ESC[24m" }
         if ($bold) { $output += "$ESC[1m" }
         if ($invert) { $output += "$ESC[27m" }
